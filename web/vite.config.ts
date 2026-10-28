@@ -1,0 +1,33 @@
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import { fileURLToPath, URL } from 'node:url'
+
+export default defineConfig({
+  plugins: [vue()],
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
+  server: {
+    port: 5174,
+    proxy: {
+      // Forward API calls to the 中港智典 backend during development.
+      '/api': {
+        target: process.env.VITE_API_TARGET || 'http://localhost:8010',
+        changeOrigin: true,
+      },
+    },
+  },
+  build: {
+    emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('/node_modules/echarts/')) return 'charts'
+          if (id.includes('/node_modules/vue/') || id.includes('/node_modules/vue-router/') || id.includes('/node_modules/pinia/')) return 'vue'
+        },
+      },
+    },
+  },
+})

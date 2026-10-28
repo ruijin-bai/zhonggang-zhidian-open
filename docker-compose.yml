@@ -1,0 +1,109 @@
+# 中港智典 — local / demo orchestration (architecture §9.1).
+# Starts PostgreSQL+pgvector, Redis, MinIO, backend (FastAPI) and web (Vue3/Nginx).
+# For a no-Docker local run, set backend/.env DATABASE_URL=sqlite+aiosqlite:///./dev.db
+# and start uvicorn directly.
+
+services:
+  pg:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: zhonggang
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER must be set}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD}@pg:5432/zhonggang
+      REDIS_URL: redis://redis:6379/0
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: zhonggang
+      LLM_PROVIDER: mock
+      EMBED_PROVIDER: mock
+      EMBED_DIM: "128"
+      VECTOR_BACKEND: pgvector
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY must be set}
+      MODEL_CONFIG_ENCRYPTION_KEY: ${MODEL_CONFIG_ENCRYPTION_KEY:?MODEL_CONFIG_ENCRYPTION_KEY must be set}
+      CORS_ORIGINS: http://localhost:8080,http://localhost:5174
+      # This compose file is for local verification. Production deployments
+      # must leave this unset and provision their own approved data.
+      SEED_DEMO_DATA: "true"
+      SEED_DEFAULT_PASSWORD: ${SEED_DEFAULT_PASSWORD:?SEED_DEFAULT_PASSWORD must be set}
+      INGEST_QUEUE_BACKEND: rq
+    depends_on:
+      pg:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      minio:
+        condition: service_started
+    ports:
+      - "8000:8000"
+
+  worker:
+    build: ./backend
+    command: ["rq", "worker", "ingestion", "--url", "redis://redis:6379/0"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD}@pg:5432/zhonggang
+      REDIS_URL: redis://redis:6379/0
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: zhonggang
+      LLM_PROVIDER: mock
+      EMBED_PROVIDER: mock
+      EMBED_DIM: "128"
+      VECTOR_BACKEND: pgvector
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY must be set}
+      MODEL_CONFIG_ENCRYPTION_KEY: ${MODEL_CONFIG_ENCRYPTION_KEY:?MODEL_CONFIG_ENCRYPTION_KEY must be set}
+      INGEST_QUEUE_BACKEND: rq
+      SEED_DEMO_DATA: "false"
+      SEED_DEFAULT_PASSWORD: ${SEED_DEFAULT_PASSWORD:?SEED_DEFAULT_PASSWORD must be set}
+    depends_on:
+      pg:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      minio:
+        condition: service_started
+      backend:
+        condition: service_started
+
+  web:
+    build: ./web
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+volumes:
+  pgdata:
+  miniodata:

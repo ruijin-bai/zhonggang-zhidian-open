@@ -1,0 +1,30 @@
+name: 协作任务
+description: 认领一个范围明确、可验收的小任务
+title: "[任务] "
+labels: ["task"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 要解决的问题和用户行为
+    validations:
+      required: true
+  - type: input
+    id: owner
+    attributes:
+      label: 负责人
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: 精确文件范围及共享接口
+      description: 先确认不与另一人抢写文件；迁移和依赖由负责人集成。
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 验收案例与证据
+    validations:
+      required: true

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "中港智典业务专家金标问答集",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "id", "category", "question", "facts", "expected_sources",
+      "expected_claims", "expected_numbers", "expected_need_human",
+      "expected_answer_mode", "reviewer", "reviewed_at"
+    ],
+    "properties": {
+      "id": {"type": "string", "pattern": "^G[0-9]{3,}$"},
+      "category": {"type": "string", "minLength": 1},
+      "question": {"type": "string", "minLength": 1},
+      "facts": {"type": "object"},
+      "expected_sources": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["regulation_code", "clause_no"],
+          "properties": {
+            "regulation_code": {"type": "string", "minLength": 1},
+            "clause_no": {"type": "string", "minLength": 1}
+          }
+        }
+      },
+      "expected_claims": {"type": "array", "items": {"type": "string", "minLength": 1}},
+      "expected_numbers": {"type": "array", "items": {"type": "string", "minLength": 1}},
+      "expected_need_human": {"type": "boolean"},
+      "expected_answer_mode": {"enum": ["authoritative", "clarify", "refuse", "manual_review"]},
+      "reviewer": {"type": "string", "minLength": 1},
+      "reviewed_at": {"type": "string", "format": "date"}
+    }
+  }
+}

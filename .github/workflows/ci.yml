@@ -1,0 +1,132 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: sqlite+aiosqlite:///./ci.db
+      LLM_PROVIDER: mock
+      EMBED_PROVIDER: mock
+      VECTOR_BACKEND: memory
+      EMBED_DIM: "128"
+      INGEST_ASYNC: "false"
+      MINIO_ENDPOINT: 127.0.0.1:1
+      POSTGRES_PASSWORD: ci-postgres-password
+      MINIO_ROOT_USER: ci-minio-user
+      MINIO_ROOT_PASSWORD: ci-minio-password
+      SECRET_KEY: ci-secret-key-0123456789abcdef0123456789
+      MODEL_CONFIG_ENCRYPTION_KEY: ci-model-key-0123456789abcdef0123456789
+      SEED_DEFAULT_PASSWORD: ci-seed-password
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt -c constraints.txt
+
+      - name: Backend tests
+        working-directory: backend
+        run: python -m pytest -q
+
+      - name: Alembic source-chain check
+        working-directory: backend
+        run: |
+          python -m scripts.check_migrations
+          python -m scripts.verify_rule_source_migration
+          python -m scripts.verify_source_confirmation_migration
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Frontend production build
+        working-directory: web
+        run: npm run build
+
+      - name: Docker Compose static check
+        run: docker compose config --quiet
+
+  collaboration-boundary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python tools/team/guard.py
+      - name: Check main push guard and task branch allowance
+        run: |
+          if printf '%s\n' 'refs/heads/codex/task 0000000000000000000000000000000000000000 refs/heads/main 0000000000000000000000000000000000000000' | sh .githooks/pre-push; then
+            echo 'Missing main push rejection'; exit 1
+          fi
+          printf '%s\n' 'refs/heads/codex/task 0000000000000000000000000000000000000000 refs/heads/codex/task 0000000000000000000000000000000000000000' | sh .githooks/pre-push
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install verified Gitleaks and scan code history
+        run: |
+          curl -fsSL https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz -o /tmp/gitleaks.tar.gz
+          echo '551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  /tmp/gitleaks.tar.gz' | sha256sum -c -
+          mkdir -p /tmp/zhidian-gitleaks
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp/zhidian-gitleaks
+          /tmp/zhidian-gitleaks/gitleaks git . --config .gitleaks.toml --redact --no-banner --log-opts='--all --no-textconv --no-ext-diff'
+  backend-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: zhidian
+          POSTGRES_DB: zhidian_team
+          POSTGRES_PASSWORD: ci-postgres-password
+        ports:
+          - 55441:5432
+        options: >-
+          --health-cmd "pg_isready -U zhidian -d zhidian_team"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      DATABASE_URL: postgresql+psycopg://zhidian:ci-postgres-password@127.0.0.1:55441/zhidian_team
+      LLM_PROVIDER: mock
+      EMBED_PROVIDER: mock
+      SECRET_KEY: ci-secret-key-0123456789abcdef0123456789
+      MODEL_CONFIG_ENCRYPTION_KEY: ci-model-key-0123456789abcdef0123456789
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: pip install -r backend/requirements.txt -c backend/constraints.txt
+      - name: Verify actual PG schema and evidence preservation
+        working-directory: backend
+        run: python ../tools/team/verify_postgres.py

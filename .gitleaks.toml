@@ -1,0 +1,8 @@
+title = "zhonggang-zhidian"
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Exact synthetic CI JWT value; never a production credential"
+regexTarget = "secret"
+regexes = ['''^ci-secret-key-0123456789abcdef0123456789$''', '''^synthetic-v2-boundary$''']

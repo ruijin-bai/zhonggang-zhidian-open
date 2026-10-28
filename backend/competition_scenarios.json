@@ -1,0 +1,7 @@
+[
+  {"scenario": "contract_change", "label": "境外项目审批/合同变更", "requires_monetary_boundary": true},
+  {"scenario": "procurement", "label": "采购审批", "requires_monetary_boundary": true},
+  {"scenario": "payment", "label": "资金/费用审批", "requires_monetary_boundary": true},
+  {"scenario": "employment", "label": "员工借调/退出", "requires_monetary_boundary": false},
+  {"scenario": "safety", "label": "安全生产事项", "requires_monetary_boundary": false}
+]

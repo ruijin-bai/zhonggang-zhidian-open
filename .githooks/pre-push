@@ -1,0 +1,9 @@
+#!/bin/sh
+# Defense against accidental direct pushes; remote protection remains separate.
+while read local_ref local_sha remote_ref remote_sha
+do
+  if [ "$remote_ref" = "refs/heads/main" ]; then
+    echo "Direct push/delete of main refused. Push a task branch and open a reviewed PR." >&2
+    exit 1
+  fi
+done

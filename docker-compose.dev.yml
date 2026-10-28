@@ -1,0 +1,26 @@
+# Development override: use the governed local dataset and expose explicit
+# role credentials on the login page. Never use this file in production.
+services:
+  backend:
+    environment:
+      ENVIRONMENT: dev
+      DATABASE_URL: sqlite+aiosqlite:////data/run12.db
+      VECTOR_BACKEND: memory
+      SEED_DEMO_DATA: "false"
+      DEMO_LOGIN_ENABLED: "true"
+      DEMO_LOGIN_PASSWORD: Zhonggang@123
+      MODEL_CONFIG_ENCRYPTION_KEY: ${DEV_MODEL_CONFIG_ENCRYPTION_KEY:?DEV_MODEL_CONFIG_ENCRYPTION_KEY must match backend/.env}
+    volumes:
+      # Governed local dataset. This directory is ignored by Git and must be
+      # backed up through the approved data-management process.
+      - ./backend/devdata:/data
+      - ./backend/storage:/app/storage
+  worker:
+    environment:
+      ENVIRONMENT: dev
+      DATABASE_URL: sqlite+aiosqlite:////data/run12.db
+      VECTOR_BACKEND: memory
+      MODEL_CONFIG_ENCRYPTION_KEY: ${DEV_MODEL_CONFIG_ENCRYPTION_KEY:?DEV_MODEL_CONFIG_ENCRYPTION_KEY must match backend/.env}
+    volumes:
+      - ./backend/devdata:/data
+      - ./backend/storage:/app/storage

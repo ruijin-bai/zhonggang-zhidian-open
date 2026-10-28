@@ -1,0 +1,76 @@
+# ===== 依赖 =====
+node_modules/
+
+# ===== 构建产物 =====
+dist/
+*.local
+*.tsbuildinfo
+
+# ===== 数据库（本地 demo 数据，不入库） =====
+*.db
+*.sqlite
+*.sqlite3
+*.db.bak
+
+# ===== 运行时对象存储落盘（上传文件本地副本，不入库） =====
+backend/storage/
+
+# ===== OCR 语言包（tesseract chi_sim，2.4MB，本机依赖，不入库） =====
+backend/tessdata/
+
+# ===== Windows 设备名幻影（无害，忽略） =====
+nul
+
+# ===== Python =====
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+*.egg-info/
+
+# ===== 工具 / 编辑器内部目录 =====
+.workbuddy/
+.vscode/
+.idea/
+.firecrawl/
+
+# ===== 临时诊断文件（排查残留，无害不入库） =====
+_diag*.txt
+_install.txt
+_pip.txt
+_diag*.py
+_min_seed.py
+_smoke*.py
+seed_run*.log
+*.log
+
+# 本地配置可能包含模型密钥，只保留无密钥的 .env.example。
+backend/.env
+
+# 评测脚本输出产物
+backend/eval_qa_result.json
+backend/eval_smoke_result.json
+backend/eval_golden_result.json
+backend/eval_golden_result.csv
+backend/competition_scenario_validation.json
+backend/model_runtime_verification.json
+backend/business_handoff_validation.json
+model_runtime_verification.json
+backend/competition_evidence/
+
+# Codex local state and private application materials
+.runtime/
+outputs_wb/
+backend/devdata/
+.env
+.env.*
+!.env.example
+*.doc
+*.docx
+*.db-wal
+*.db-shm
+*.dump
+*.bundle
+*.pem
+*.pfx
+*.key

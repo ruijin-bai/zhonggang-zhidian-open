@@ -1,0 +1,8 @@
+{
+  "qa_clarification_citation_security": "test_demo_smoke_flow.py::test_r1_demo_qa_flow_and_confidential_clause_denial",
+  "claim_grounding_numeric": "test_grounding_authority.py::test_grounding_requires_claim_level_citation_and_checks_numbers",
+  "authority_gate": "test_grounding_authority.py::test_authority_requires_minimum_governance_metadata",
+  "rule_boundary_currency_path_materials": "test_rule_case_workflow.py::test_case_uses_reviewed_integer_boundary_rules_not_llm_guessing",
+  "version_replacement_rule_retirement_history": "test_change_impact.py::test_replacing_a_regulation_retires_rules_and_marks_historical_cases",
+  "high_risk_cannot_close": "test_competition_demo_flow.py::test_high_risk_impact_cannot_be_confirmed"
+}

@@ -1,0 +1,29 @@
+# Optional high-fidelity parser profile. Start with:
+# docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.docling.yml up -d --build
+services:
+  docling:
+    image: quay.io/docling-project/docling-serve-cpu:v1.30.0
+    environment:
+      DOCLING_SERVE_ENABLE_UI: "0"
+      DOCLING_SERVE_MAX_SYNC_WAIT: "300"
+    ports:
+      - "5001:5001"
+    volumes:
+      - docling-cache:/root/.cache
+  backend:
+    environment:
+      DOCUMENT_PARSER_MODE: auto
+      DOCLING_BASE_URL: http://docling:5001
+    depends_on:
+      docling:
+        condition: service_started
+  worker:
+    environment:
+      DOCUMENT_PARSER_MODE: auto
+      DOCLING_BASE_URL: http://docling:5001
+    depends_on:
+      docling:
+        condition: service_started
+
+volumes:
+  docling-cache:
